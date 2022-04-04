@@ -56,30 +56,28 @@ cv2.imwrite("zoomed_in.png",crop_img)
 cv2.imshow('Cropped Image', crop_img)
 cv2.waitKey(0)
 
-# FLANN Image Recognition
-# img1 is the image with the features that we want to match to img2
-img1 = cv2.imread("pos_image.png", cv2.IMREAD_GRAYSCALE)
+# SIFT Feature Matching
 
-img2 = cv2.imread("zoomed_in.png", cv2.IMREAD_GRAYSCALE)
+img1 = cv2.imread('images/query_image.png',cv2.IMREAD_GRAYSCALE) # queryImage
+img2 = cv2.imread('outlined_image.png',cv2.IMREAD_GRAYSCALE) # trainImage
 
-#-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
-minHessian = 400
-detector = cv2.xfeatures2d.SURF_create(hessianThreshold=minHessian)
-keypoints1, descriptors1 = detector.detectAndCompute(img1, None)
-keypoints2, descriptors2 = detector.detectAndCompute(img2, None)
-#-- Step 2: Matching descriptor vectors with a FLANN based matcher
-# Since SURF is a floating-point descriptor NORM_L2 is used
-matcher = cv2.DescriptorMatcher_create(cv2.DescriptorMatcher_FLANNBASED)
-knn_matches = matcher.knnMatch(descriptors1, descriptors2, 2)
-#-- Filter matches using the Lowe's ratio test
-ratio_thresh = 0.7
-good_matches = []
-for m,n in knn_matches:
-    if m.distance < ratio_thresh * n.distance:
-        good_matches.append(m)
-#-- Draw matches
-img_matches = np.empty((max(img1.shape[0], img2.shape[0]), img1.shape[1]+img2.shape[1], 3), dtype=np.uint8)
-cv2.drawMatches(img1, keypoints1, img2, keypoints2, good_matches, img_matches, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-#-- Show detected matches
-cv2.imshow('Good Matches', img_matches)
-cv2.waitKey()
+# Initiate SIFT detector
+sift = cv2.SIFT_create()
+
+# find the keypoints and descriptors with SIFT
+kp1, des1 = sift.detectAndCompute(img1,None)
+kp2, des2 = sift.detectAndCompute(img2,None)
+
+# BFMatcher with default params
+bf = cv2.BFMatcher()
+matches = bf.knnMatch(des1,des2,k=2)
+
+# Apply ratio test
+good = []
+for m,n in matches:
+    if m.distance < 0.75*n.distance:
+        good.append([m])
+
+# cv.drawMatchesKnn expects list of lists as matches.
+img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good,None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+plt.imshow(img3),plt.show()
