@@ -65,14 +65,16 @@ contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_S
 
 c = max(contours, key=cv2.contourArea)
 
-#(x,y),radius = cv2.minEnclosingCircle(c)
-#center = (int(x),int(y))
-#radius = int(radius)
+(x,y),radius = cv2.minEnclosingCircle(c)
+center = (int(x),int(y))
+radius = int(radius)
 
 #cv2.circle(crop_img,center,radius,(0,255,0),2)
 
 x,y,w,h = cv2.boundingRect(c)
 face = crop_img[y:y+h, x:x+w]
+
+#cv2.imwrite("outputImages/circle.png", crop_img)
 
 cv2.imwrite("outputImages/face.png",face)
 
@@ -100,7 +102,7 @@ matches = bf.knnMatch(des1,des2,k=2)
 # Apply ratio test
 good = []
 for m,n in matches:
-    if m.distance < 0.75*n.distance:
+    if m.distance < 0.70*n.distance:
         good.append([m])
 
 # cv.drawMatchesKnn expects list of lists as matches.
