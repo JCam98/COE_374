@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
+from exif import Image
 
 
 def captureFrames(pathToVid, sec, count):
@@ -50,11 +51,11 @@ def featRecog(frameName, count):
     # Find the contour with the largest area
 
     if contours:
-        c = max(contours, key=cv2.contourArea)
+        conts = max(contours, key=cv2.contourArea)
 
         # Find the bounding rectangle around the max contour (x,y) is top left coord, (w,h) is width and height
 
-        x,y,w,h = cv2.boundingRect(c)
+        x,y,w,h = cv2.boundingRect(conts)
 
         print(str(h) + " "+ str(count))
         # checking to make sure the bounding box that is cropped is in range of what a face would be
@@ -150,6 +151,13 @@ def featRecog(frameName, count):
                             plt.imshow(img4,),plt.show()
                         else:
                             print('Frowny Face!!')
+                            M = cv2.moments(conts)
+                            if M['m00'] != 0:
+                                cx = int(M['m10']/M['m00'])
+                                cy = int(M['m01']/M['m00'])
+                                print('cx = '+str(cx) +' , cy = '+str(cy))
+                                # cv2.circle(img, (cx, cy), 7, (0, 0, 255), -1)
+                                # cv2.imwrite("imageCenter.png", img)
                             plt.imshow(img5,),plt.show()
                     else:
                         print('Tarp')
@@ -163,6 +171,15 @@ def featRecog(frameName, count):
                 except:
                     pass
 
+def getGPSCoords(img_path):
+    with open(img_path, 'rb') as src:
+        img = Image(src)
+        print (src.name, img)
+        if img.has_exif:
+            info = f' has the EXIF {img.exif_version}'
+        else:
+            info = 'does not contain any EXIF information'
+        print(f'Image {src.name}: {info}')
 
 def main():
     sec = 0
@@ -175,6 +192,7 @@ def main():
         success = captureFrames("../Input_Data/Training_videos/flight_test_Trim.mp4", sec, count)
         count = count + 1
 
+    # getGPSCoords("./imageCenter.png")
 
 if __name__ == "__main__":
     main()
