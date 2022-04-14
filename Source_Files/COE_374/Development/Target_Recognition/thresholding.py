@@ -3,7 +3,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+def captureLiveVideoTest():
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Cannot open camera")
+        exit()
+    count = 0
+    while count < 100:
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        # if frame is read correctly ret is True
+        if not ret:
+            print("Can't receive frame (stream end?). Exiting ...")
+            break
+        # Our operations on the frame come here
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # Display the resulting frame
+        cv2.imwrite('frame' +str(count)+'.png', gray)
+        # plt.imshow(gray,),plt.show()
+        count += 1
 
+
+    # When everything done, release the capture
+    cap.release()
+    cv2.destroyAllWindows()
 def captureFrames(pathToVid, sec, count):
     # Read the video from specified path
     cam = cv2.VideoCapture(pathToVid)
@@ -194,15 +217,16 @@ def xy2LatLon(lat_center,lon_center,zoom,width_internal,height_internal,pxX_inte
     return lat_Point,lon_Point
 
 def main():
-    sec = 0
-    frameRate = 3 #//it will capture image in each 1 second
-    count=0
-    success = captureFrames("../Input_Data/Training_videos/flight_test_Trim.mp4", sec, count)
-    while success:
-        sec = sec + frameRate
-        sec = round(sec, 2)
-        success = captureFrames("../Input_Data/Training_videos/flight_test_Trim.mp4", sec, count)
-        count = count + 1
+    # sec = 0
+    # frameRate = 3 #//it will capture image in each 1 second
+    # count=0
+    # success = captureFrames("../Input_Data/Training_videos/flight_test_Trim.mp4", sec, count)
+    # while success:
+    #     sec = sec + frameRate
+    #     sec = round(sec, 2)
+    #     success = captureFrames("../Input_Data/Training_videos/flight_test_Trim.mp4", sec, count)
+    #     count = count + 1
+    captureLiveVideoTest()
 
 if __name__ == "__main__":
     main()
