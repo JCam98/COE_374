@@ -1,9 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import time
-import os
-from exif import Image
+import math
 
 
 def captureFrames(pathToVid, sec, count):
@@ -170,16 +168,30 @@ def featRecog(frameName, count):
                     cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img5)
                 except:
                     pass
+def LatLontoXY(lat_center,lon_center,zoom):
+    C =(256/(2*math.pi) )* 2**zoom
 
-def getGPSCoords(img_path):
-    with open(img_path, 'rb') as src:
-        img = Image(src)
-        print (src.name, img)
-        if img.has_exif:
-            info = f' has the EXIF {img.exif_version}'
-        else:
-            info = 'does not contain any EXIF information'
-        print(f'Image {src.name}: {info}')
+    x=C*(math.radians(lon_center)+math.pi)
+    y=C*(math.pi-math.log( math.tan(  (math.pi/4) + math.radians(lat_center)/2    )  ))
+
+    return x,y
+
+def xy2LatLon(lat_center,lon_center,zoom,width_internal,height_internal,pxX_internal,pxY_internal):
+
+    xcenter,ycenter=LatLontoXY(lat_center,lon_center,zoom)
+
+    xPoint=xcenter- (width_internal/2-pxX_internal)
+    ypoint=ycenter -(height_internal/2-pxY_internal)
+
+
+    C = (256 / (2 * math.pi)) * 2 ** zoom
+    M = (xPoint/C)-math.pi
+    N =-(ypoint/C) + math.pi
+
+    lon_Point =math.degrees(M)
+    lat_Point =math.degrees( (math.atan( math.e**N)-(math.pi/4))*2 )
+
+    return lat_Point,lon_Point
 
 def main():
     sec = 0
@@ -191,8 +203,6 @@ def main():
         sec = round(sec, 2)
         success = captureFrames("../Input_Data/Training_videos/flight_test_Trim.mp4", sec, count)
         count = count + 1
-
-    # getGPSCoords("./imageCenter.png")
 
 if __name__ == "__main__":
     main()
