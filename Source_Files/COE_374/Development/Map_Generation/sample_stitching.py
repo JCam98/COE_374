@@ -135,7 +135,10 @@ class Stitch(object):
             trees = 5)
         matcher = cv2.FlannBasedMatcher(flann_params, {})
 
+        #gray= cv2.cvtColor(base_img,cv2.COLOR_BGR2GRAY)
         # Test 
+        #base_img = cv2.drawKeypoints(gray,kp,img,flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        #cv2.imwrite('sift_keypoints.jpg',base_img)
         #cv2.imwrite("test.jpg",base_img)
 
         print("Iterating through next images...")
@@ -284,9 +287,9 @@ class Stitch(object):
             # Crop black edge
             final_gray = cv2.cvtColor(final_img, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(final_gray, 1, 255, cv2.THRESH_BINARY)
-            dino, contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
             print("Found %d contours..." % (len(contours)))
-    
+
             max_area = 0
             best_rect = (0,0,0,0)
     
