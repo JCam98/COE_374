@@ -30,7 +30,7 @@ class Stitch(object):
             self.dir_list = os.listdir(image_dir)
             if img_filter:
                 # remove all files that doen't end with .[image_filter]
-                self.dir_list = filter(lambda x: x.find(img_filter) > -1, self.dir_list)
+                self.dir_list = list(filter(lambda x: x.find(img_filter) > -1, self.dir_list))
             try: #remove Thumbs.db, is existent (windows only)
                 self.dir_list.remove('.DS_Store')
             except ValueError:
@@ -43,10 +43,10 @@ class Stitch(object):
     
         self.dir_list = map(lambda x: os.path.join(image_dir, x), self.dir_list)
         
-        self.dir_list = filter(lambda x: x != key_frame, self.dir_list)
+        self.dir_list = list(filter(lambda x: x != key_frame, self.dir_list))
     
         base_img_rgb = cv2.imread(key_frame)
-        if base_img_rgb == None:
+        if base_img_rgb.any() == None:
             raise IOError("%s doesn't exist" % key_frame)
         
         final_img = self.stitch(base_img_rgb, 0)        
@@ -117,7 +117,7 @@ class Stitch(object):
     
     def stitch(self, base_img_rgb, round=0):
     
-        if ( len(self.dir_list) < 1 ):
+        if (len(list(self.dir_list)) < 1 ):
             return base_img_rgb 
     
     
@@ -134,11 +134,14 @@ class Stitch(object):
         flann_params = dict(algorithm = FLANN_INDEX_KDTREE, 
             trees = 5)
         matcher = cv2.FlannBasedMatcher(flann_params, {})
-    
+
+        # Test 
+        #cv2.imwrite("test.jpg",base_img)
+
         print("Iterating through next images...")
     
         closestImage = None
-    
+
         next_img_path = self.dir_list[0]
         print(next_img_path)
         print("Reading %s..." % next_img_path)
@@ -198,7 +201,7 @@ class Stitch(object):
         print("Closest Image: ", closestImage['path'])
         print("Closest Image Ratio: ", closestImage['inliers'])
 
-        self.dir_list = filter(lambda x: x != closestImage['path'], self.dir_list)
+        self.dir_list = list(filter(lambda x: x != closestImage['path'], self.dir_list))
     
         H = closestImage['h']
         H = H / H[2,2]
