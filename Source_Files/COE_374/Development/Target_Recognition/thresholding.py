@@ -2,50 +2,61 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+# for pixhawk
+import dronekit
+from dronekit import connect
+from dronekit import VehicleMode
 
-def captureLiveVideoTest():
+
+
+def captureLiveVideoTest(vehicle):
     cap = cv2.VideoCapture(0)
+    target_arr = []
     if not cap.isOpened():
         print("Cannot open camera")
         exit()
     count = 0
-    while count < 100:
+    while count < 10:
         # Capture frame-by-frame
         ret, frame = cap.read()
+        cv2.imwrite('frame' +str(count)+'.png', frame)
+        # pull GPS
+        lat = vehicle.location.global_relative_frame.lat
+        lon = vehicle.location.global_relative_frame.lon
+        alt = vehicle.location.global_relative_frame.alt
         # if frame is read correctly ret is True
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
-        # Our operations on the frame come here
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        target_dict = featRecog(frame, count, lat, lon, alt)
+        target_arr.append(target_dict)
         # Display the resulting frame
-        cv2.imwrite('frame' +str(count)+'.png', gray)
-        # plt.imshow(gray,),plt.show()
+        #cv2.imwrite('frame' +str(count)+'.png', gray)
         count += 1
 
 
     # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()
-def captureFrames(pathToVid, sec, count):
+def captureFrames(ret,frame, count):
     # Read the video from specified path
-    cam = cv2.VideoCapture(pathToVid)
+    #cam = cv2.VideoCapture(pathToVid)
 
-    cam.set(cv2.CAP_PROP_POS_MSEC,sec*1000)
-    hasFrames,image = cam.read()
-    if hasFrames:
+    #cam.set(cv2.CAP_PROP_POS_MSEC,sec*1000)
+
+    if ret:
         frameName = "./data/image"+str(count)+".jpg" 
-        cv2.imwrite(frameName, image)     # save frame as JPG file
+        cv2.imwrite(frameName, frame)     # save frame as JPG file
         featRecog(frameName, count)
-    return hasFrames
 
 
 
 
-def featRecog(frameName, count):
+def featRecog(frame, count, lat, lon, alt):
     ## Read
-    # img = cv2.imread('../Input_Data/Training_Images/testField.png')
-    img = cv2.imread(frameName)
+    #img = cv2.imread(frameName)
+    img = frame
     ## convert to hsv
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
@@ -64,7 +75,7 @@ def featRecog(frameName, count):
 
     thresh = 20
     im_bw = cv2.threshold(gray, thresh, 255, cv2.THRESH_BINARY)[1]
-    cv2.imwrite('testImages/bw_image.png', im_bw)
+    #cv2.imwrite('testImages/bw_image.png', im_bw)
     # find and draw contours
 
     contours = cv2.findContours(im_bw, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -82,7 +93,7 @@ def featRecog(frameName, count):
         # checking to make sure the bounding box that is cropped is in range of what a face would be
         if h > 30 and h < 150:
         
-            cv2.imwrite("outputImages/outlined_image.png",img)
+            #cv2.imwrite("outputImages/outlined_image.png",img)
 
             
             # Crop the image to the bounding rectangle only
@@ -90,11 +101,11 @@ def featRecog(frameName, count):
             crop_img = img[y:y+h, x:x+w]
             crop_bw = im_bw[y:y+h, x:x+w]
 
-            cv2.imwrite("outputImages/zoomed_in.png",crop_img)
-            cv2.imwrite("outputImages/zoomed_inbw.png", crop_bw)
+            #cv2.imwrite("outputImages/zoomed_in.png",crop_img)
+           # cv2.imwrite("outputImages/zoomed_inbw.png", crop_bw)
 
-            im = cv2.imread('outputImages/zoomed_inbw.png')
-            invert = cv2.bitwise_not(im)
+            #im = cv2.imread('outputImages/zoomed_inbw.png')
+            invert = cv2.bitwise_not(crop_bw)
             imgray = cv2.cvtColor(invert, cv2.COLOR_BGR2GRAY)
             ret, thresh = cv2.threshold(imgray, 127, 255, 0)
             contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -110,7 +121,7 @@ def featRecog(frameName, count):
                 try: 
                     face = crop_img[y:y+h, x:x+w]
 
-                    cv2.imwrite("outputImages/face.png",face)
+                    #cv2.imwrite("outputImages/face.png",face)
 
                     # SIFT Feature Matching
 
@@ -169,7 +180,15 @@ def featRecog(frameName, count):
                     if countGoodMatchesSmiley >= 4 or countGoodMatchesFrowny >= 4:
                         if countGoodMatchesSmiley > countGoodMatchesFrowny:
                             print('Smiley Face!!')
-                            plt.imshow(img4,),plt.show()
+                            M = cv2.moments(conts)
+                            if M['m00'] != 0:
+                                cx = int(M['m10']/M['m00'])
+                                cy = int(M['m01']/M['m00'])
+                                print('cx = '+str(cx) +' , cy = '+str(cy))
+                                target_lat , target_lon = xy2LatLon(lat, lon, 1, frame.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH), frame.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT), cx, cy)
+                                target_dict = {'smiley_face':[target_lat, target_lon]}
+                                return target_dict
+                            # plt.imshow(img4,),plt.show()
                         else:
                             print('Frowny Face!!')
                             M = cv2.moments(conts)
@@ -177,20 +196,31 @@ def featRecog(frameName, count):
                                 cx = int(M['m10']/M['m00'])
                                 cy = int(M['m01']/M['m00'])
                                 print('cx = '+str(cx) +' , cy = '+str(cy))
-                                # cv2.circle(img, (cx, cy), 7, (0, 0, 255), -1)
-                                # cv2.imwrite("imageCenter.png", img)
-                            plt.imshow(img5,),plt.show()
+                                target_lat , target_lon = xy2LatLon(lat, lon, 1, frame.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH), frame.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT), cx, cy)
+                                target_dict = {'frowny_face':[target_lat, target_lon]}
+                                return target_dict
+                            
+                            # plt.imshow(img5,),plt.show()
                     else:
                         print('Tarp')
-                        plt.imshow(img4,),plt.show()
-                        plt.imshow(img5,),plt.show()
+                        M = cv2.moments(conts)
+                        if M['m00'] != 0:
+                            cx = int(M['m10']/M['m00'])
+                            cy = int(M['m01']/M['m00'])
+                            print('cx = '+str(cx) +' , cy = '+str(cy))
+                            target_lat , target_lon = xy2LatLon(lat, lon, 1, frame.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH), frame.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT), cx, cy)
+                            target_dict = {'tarp':[target_lat, target_lon]}
+                            return target_dict
+                        # plt.imshow(img4,),plt.show()
+                        # plt.imshow(img5,),plt.show()
                     
                     
 
-                    cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img4)
-                    cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img5)
+                    # cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img4)
+                    # cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img5)
                 except:
                     pass
+
 def LatLontoXY(lat_center,lon_center,zoom):
     C =(256/(2*math.pi) )* 2**zoom
 
@@ -217,6 +247,9 @@ def xy2LatLon(lat_center,lon_center,zoom,width_internal,height_internal,pxX_inte
     return lat_Point,lon_Point
 
 def main():
+    #connection to pixhawk
+    vehicle = connect('/dev/ttyAMA0', wait_ready=True, baud=921600)
+
     # sec = 0
     # frameRate = 3 #//it will capture image in each 1 second
     # count=0
@@ -226,7 +259,7 @@ def main():
     #     sec = round(sec, 2)
     #     success = captureFrames("../Input_Data/Training_videos/flight_test_Trim.mp4", sec, count)
     #     count = count + 1
-    captureLiveVideoTest()
+    captureLiveVideoTest(vehicle)
 
 if __name__ == "__main__":
     main()
