@@ -119,22 +119,22 @@ def featRecog(frame, count, lat, lon, alt):
                 face = crop_img[y:y+h, x:x+w]
                 cv2.imwrite("outputImages/face.png",face)
 
-		# SIFT Feature Matching
+        # SIFT Feature Matching
 
         img1 = cv2.imread('inputImages/querySmile.png',cv2.IMREAD_GRAYSCALE) # queryImage
         img2 = cv2.imread('outputImages/face.png',cv2.IMREAD_GRAYSCALE) # trainImage
         img3 = cv2.imread('inputImages/queryFrowny.png',cv2.IMREAD_GRAYSCALE) # queryImage
 
 
-		# Initiate SIFT detector
+        # Initiate SIFT detector
         sift = cv2.SIFT_create()
 
-		# find the keypoints and descriptors with SIFT
+        # find the keypoints and descriptors with SIFT
         kp1, des1 = sift.detectAndCompute(img1,None)
         kp2, des2 = sift.detectAndCompute(img2,None)
         kp3, des3 = sift.detectAndCompute(img3,None)
 
-		# FLANN parameters
+        # FLANN parameters
         FLANN_INDEX_KDTREE = 1
         index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
         search_params = dict(checks=100)   # or pass empty dictionary
@@ -143,13 +143,13 @@ def featRecog(frame, count, lat, lon, alt):
         matchesSmiley = flann.knnMatch(des1,des2,k=2)
         matchesFrowny= flann.knnMatch(des3,des2,k=2)
 
-		# Need to draw only good matches, so create a mask
+        # Need to draw only good matches, so create a mask
         matchesSmileyMask = [[0,0] for i in range(len(matchesSmiley))]
         matchesFrownyMask = [[0,0] for i in range(len(matchesFrowny))]
 
 
 
-		# ratio test as per Lowe's paper Smiley
+        # ratio test as per Lowe's paper Smiley
         countGoodMatchesSmiley = 0
         for i,(m,n) in enumerate(matchesSmiley):
             if m.distance < 0.8*n.distance:
