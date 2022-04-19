@@ -139,10 +139,12 @@ def featRecog(frame, count, lat, lon, alt):
                 index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
                 search_params = dict(checks=100)   # or pass empty dictionary
                 flann = cv2.FlannBasedMatcher(index_params,search_params)
-
-                matchesSmiley = flann.knnMatch(des1,des2,k=2)
-                matchesFrowny= flann.knnMatch(des3,des2,k=2)
-
+                
+                try:
+                    matchesSmiley = flann.knnMatch(des1,des2,k=2)
+                    matchesFrowny= flann.knnMatch(des3,des2,k=2)
+                except:
+                    return 'none', 0 ,0
                 # Need to draw only good matches, so create a mask
                 matchesSmileyMask = [[0,0] for i in range(len(matchesSmiley))]
                 matchesFrownyMask = [[0,0] for i in range(len(matchesFrowny))]
@@ -224,7 +226,7 @@ def featRecog(frame, count, lat, lon, alt):
 
 
 def calcGPS(gpsLat, gpsLon, xpoint, ypoint, alt):
-    mPerPixel = 2*alt*math.tan(math.rad(65)/2)/640
+    mPerPixel = 2*alt*math.tan(math.radians(65)/2)/640
     lat_center = 240
     lon_center = 320
 
