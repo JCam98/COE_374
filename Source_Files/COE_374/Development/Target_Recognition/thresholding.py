@@ -115,110 +115,110 @@ def featRecog(frame, count, lat, lon, alt):
             radius = int(radius)
 
             x,y,w,h = cv2.boundingRect(c)
-            if w > 5:
+            if w > 30:
                 face = crop_img[y:y+h, x:x+w]
                 cv2.imwrite("outputImages/face.png",face)
 
-        # SIFT Feature Matching
+                # SIFT Feature Matching
 
-        img1 = cv2.imread('inputImages/querySmile.png',cv2.IMREAD_GRAYSCALE) # queryImage
-        img2 = cv2.imread('outputImages/face.png',cv2.IMREAD_GRAYSCALE) # trainImage
-        img3 = cv2.imread('inputImages/queryFrowny.png',cv2.IMREAD_GRAYSCALE) # queryImage
-
-
-        # Initiate SIFT detector
-        sift = cv2.SIFT_create()
-
-        # find the keypoints and descriptors with SIFT
-        kp1, des1 = sift.detectAndCompute(img1,None)
-        kp2, des2 = sift.detectAndCompute(img2,None)
-        kp3, des3 = sift.detectAndCompute(img3,None)
-
-        # FLANN parameters
-        FLANN_INDEX_KDTREE = 1
-        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-        search_params = dict(checks=100)   # or pass empty dictionary
-        flann = cv2.FlannBasedMatcher(index_params,search_params)
-
-        matchesSmiley = flann.knnMatch(des1,des2,k=2)
-        matchesFrowny= flann.knnMatch(des3,des2,k=2)
-
-        # Need to draw only good matches, so create a mask
-        matchesSmileyMask = [[0,0] for i in range(len(matchesSmiley))]
-        matchesFrownyMask = [[0,0] for i in range(len(matchesFrowny))]
+                img1 = cv2.imread('inputImages/querySmile.png',cv2.IMREAD_GRAYSCALE) # queryImage
+                img2 = cv2.imread('outputImages/face.png',cv2.IMREAD_GRAYSCALE) # trainImage
+                img3 = cv2.imread('inputImages/queryFrowny.png',cv2.IMREAD_GRAYSCALE) # queryImage
 
 
+                # Initiate SIFT detector
+                sift = cv2.SIFT_create()
 
-        # ratio test as per Lowe's paper Smiley
-        countGoodMatchesSmiley = 0
-        for i,(m,n) in enumerate(matchesSmiley):
-            if m.distance < 0.8*n.distance:
-                matchesSmileyMask[i]=[1,0]
-                countGoodMatchesSmiley += 1
-            draw_params_smiley = dict(matchColor = (0,255,0),
-                        singlePointColor = (255,0,0),
-                        matchesMask = matchesSmileyMask,
-                        flags = cv2.DrawMatchesFlags_DEFAULT)
-        img4 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,matchesSmiley,None,**draw_params_smiley)
+                # find the keypoints and descriptors with SIFT
+                kp1, des1 = sift.detectAndCompute(img1,None)
+                kp2, des2 = sift.detectAndCompute(img2,None)
+                kp3, des3 = sift.detectAndCompute(img3,None)
 
-        # ratio test as per Lowe's paper Smiley
-        countGoodMatchesFrowny = 0
-        for i,(m,n) in enumerate(matchesFrowny):
-            if m.distance < 0.8*n.distance:
-                matchesFrownyMask[i]=[1,0]
-                countGoodMatchesFrowny += 1
-            draw_params_frowny = dict(matchColor = (0,255,0),
-                        singlePointColor = (255,0,0),
-            matchesMask = matchesFrownyMask,
-                        flags = cv2.DrawMatchesFlags_DEFAULT)
-        img5 = cv2.drawMatchesKnn(img3,kp3,img2,kp2,matchesFrowny,None,**draw_params_frowny)
+                # FLANN parameters
+                FLANN_INDEX_KDTREE = 1
+                index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+                search_params = dict(checks=100)   # or pass empty dictionary
+                flann = cv2.FlannBasedMatcher(index_params,search_params)
 
-        if countGoodMatchesSmiley >= 4 or countGoodMatchesFrowny >= 4:
-            if countGoodMatchesSmiley > countGoodMatchesFrowny:
-                print('Smiley Face!!')
-                M = cv2.moments(conts)
-                if M['m00'] != 0:
-                    cx = int(M['m10']/M['m00'])
-                    cy = int(M['m01']/M['m00'])
-                    print('cx = '+str(cx) +' , cy = '+str(cy))
-                    #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
-                    #target_dict = {'smiley_face'+str(count):[target_lat, target_lon]}
-                    target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
-                    cv2.imwrite('/home/pi/Desktop/outputImagesTest/Smiley'+str(count)+'.png', frame)
-                    return 'Smiley_Face'+str(count), target_lat, target_lon
-                # plt.imshow(img4,),plt.show()
-            else:
-                print('Frowny Face!!')
-                M = cv2.moments(conts)
-                if M['m00'] != 0:
-                    cx = int(M['m10']/M['m00'])
-                    cy = int(M['m01']/M['m00'])
-                    print('cx = '+str(cx) +' , cy = '+str(cy))
-                    #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
-                    #target_dict = {'frowny_face'+str(count):[target_lat, target_lon]}
-                    target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
-                    cv2.imwrite('/home/pi/Desktop/outputImagesTest/Frowny'+str(count)+'.png', frame)
-                    return 'Frowny Face'+str(count), target_lat, target_lon
-                # plt.imshow(img5,),plt.show()
-        else:
-            print('Tarp')
-            M = cv2.moments(conts)
-            if M['m00'] != 0:
-                cx = int(M['m10']/M['m00'])
-                cy = int(M['m01']/M['m00'])
-                print('cx = '+str(cx) +' , cy = '+str(cy))
-                #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
-                #target_dict = {'tarp'+str(count):[target_lat, target_lon]}
-                target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
-                print('lat= ' +str(target_lat)+ ' lon='+str(target_lon))
-                return 'tarp'+str(count),target_lat, target_lon
-            # plt.imshow(img4,),plt.show()
-            # plt.imshow(img5,),plt.show()
+                matchesSmiley = flann.knnMatch(des1,des2,k=2)
+                matchesFrowny= flann.knnMatch(des3,des2,k=2)
+
+                # Need to draw only good matches, so create a mask
+                matchesSmileyMask = [[0,0] for i in range(len(matchesSmiley))]
+                matchesFrownyMask = [[0,0] for i in range(len(matchesFrowny))]
 
 
 
-        cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img4)
-        cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img5)
+                # ratio test as per Lowe's paper Smiley
+                countGoodMatchesSmiley = 0
+                for i,(m,n) in enumerate(matchesSmiley):
+                    if m.distance < 0.8*n.distance:
+                        matchesSmileyMask[i]=[1,0]
+                        countGoodMatchesSmiley += 1
+                    draw_params_smiley = dict(matchColor = (0,255,0),
+                                singlePointColor = (255,0,0),
+                                matchesMask = matchesSmileyMask,
+                                flags = cv2.DrawMatchesFlags_DEFAULT)
+                img4 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,matchesSmiley,None,**draw_params_smiley)
+
+                # ratio test as per Lowe's paper Smiley
+                countGoodMatchesFrowny = 0
+                for i,(m,n) in enumerate(matchesFrowny):
+                    if m.distance < 0.8*n.distance:
+                        matchesFrownyMask[i]=[1,0]
+                        countGoodMatchesFrowny += 1
+                    draw_params_frowny = dict(matchColor = (0,255,0),
+                                singlePointColor = (255,0,0),
+                    matchesMask = matchesFrownyMask,
+                                flags = cv2.DrawMatchesFlags_DEFAULT)
+                img5 = cv2.drawMatchesKnn(img3,kp3,img2,kp2,matchesFrowny,None,**draw_params_frowny)
+
+                if countGoodMatchesSmiley >= 4 or countGoodMatchesFrowny >= 4:
+                    if countGoodMatchesSmiley > countGoodMatchesFrowny:
+                        print('Smiley Face!!')
+                        M = cv2.moments(conts)
+                        if M['m00'] != 0:
+                            cx = int(M['m10']/M['m00'])
+                            cy = int(M['m01']/M['m00'])
+                            print('cx = '+str(cx) +' , cy = '+str(cy))
+                            #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
+                            #target_dict = {'smiley_face'+str(count):[target_lat, target_lon]}
+                            target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
+                            cv2.imwrite('/home/pi/Desktop/outputImagesTest/Smiley'+str(count)+'.png', frame)
+                            return 'Smiley_Face'+str(count), target_lat, target_lon
+                        # plt.imshow(img4,),plt.show()
+                    else:
+                        print('Frowny Face!!')
+                        M = cv2.moments(conts)
+                        if M['m00'] != 0:
+                            cx = int(M['m10']/M['m00'])
+                            cy = int(M['m01']/M['m00'])
+                            print('cx = '+str(cx) +' , cy = '+str(cy))
+                            #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
+                            #target_dict = {'frowny_face'+str(count):[target_lat, target_lon]}
+                            target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
+                            cv2.imwrite('/home/pi/Desktop/outputImagesTest/Frowny'+str(count)+'.png', frame)
+                            return 'Frowny Face'+str(count), target_lat, target_lon
+                        # plt.imshow(img5,),plt.show()
+                else:
+                    print('Tarp')
+                    M = cv2.moments(conts)
+                    if M['m00'] != 0:
+                        cx = int(M['m10']/M['m00'])
+                        cy = int(M['m01']/M['m00'])
+                        print('cx = '+str(cx) +' , cy = '+str(cy))
+                        #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
+                        #target_dict = {'tarp'+str(count):[target_lat, target_lon]}
+                        target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
+                        print('lat= ' +str(target_lat)+ ' lon='+str(target_lon))
+                        return 'tarp'+str(count),target_lat, target_lon
+                    # plt.imshow(img4,),plt.show()
+                    # plt.imshow(img5,),plt.show()
+
+
+
+                cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img4)
+                cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img5)
 
     return 'none', 0, 0   
 
