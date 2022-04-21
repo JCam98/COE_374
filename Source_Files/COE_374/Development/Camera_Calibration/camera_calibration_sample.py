@@ -12,7 +12,6 @@
 import numpy as np
 import cv2 as cv
 import glob
-import os
 
 
 # termination criteria
@@ -40,8 +39,7 @@ for fname in images:
         cv.imshow('img', img)
         cv.waitKey(5000)
 cv.destroyAllWindows()
-print(ret)
-print(corners)
+
 
 # Return camera matrix, distortion coefficients, rotation and translation vectors
 
@@ -57,7 +55,6 @@ dst = cv.undistort(img, mtx, dist, None, newcameramtx)
 x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
 cv.imwrite('Sample_Repo_Images/calibresult.png', dst)
-print (os.stat('Sample_Repo_Images/left12.jpg').st_size) # Output file size in bytes
 
 # mean_error = 0
 # for i in range(len(objpoints)):
