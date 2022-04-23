@@ -20,7 +20,11 @@ def captureLiveVideoTest():
     while cap.isOpened():
         # Capture frame-by-frame
         ret, frame = cap.read()
-        #cv2.imwrite('frame' +str(count)+'.png', frame)
+        
+        # Undisort image frame 
+        
+        frame = undistort_frames(frame)
+        
         # pull GPS
 #        lat = vehicle.location.global_relative_frame.lat
 #        lon = vehicle.location.global_relative_frame.lon
@@ -48,7 +52,33 @@ def captureLiveVideoTest():
     f.close()
 
 
+''' Define function to undistort image frames using intrinsic parameters from
+"camera_calibration_standard.py" '''
 
+
+def undistort_frames(frame):
+    
+    # Define Camera Calibration Parameters from "camera_calibration_standard.py"
+        
+    dist = np.array([[-0.50674759,  0.23775016, -0.01112213, -0.00096096,  0.17855823]])
+    mtx = np.array([[1882.35, 0, 959.767], [0, 1875.87, 575.389]])
+    
+    h,  w = frame.shape[:2] # Return frame size
+
+    # Obtain new camera matrix for removing distortion from input image
+
+    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+
+    # # Undistortion Method: Using remapping
+
+    mapx,mapy = cv2.initUndistortRectifyMap(mtx,dist,None,newcameramtx,(w,h),5)
+    frame = cv2.remap(frame,mapx,mapy,cv2.INTER_LINEAR)
+  
+    #Crop the image
+    x, y, w, h = roi
+    frame = frame[y:y+h, x:x+w]
+
+    return frame
 
 
 def featRecog(frame, count, lat, lon, alt):
