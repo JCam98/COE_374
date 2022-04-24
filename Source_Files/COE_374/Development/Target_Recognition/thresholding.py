@@ -2,6 +2,13 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+# for pixhawk
+#import dronekit
+#from dronekit import connect
+#from dronekit import VehicleMode
+import time
+
+
 
 def captureLiveVideoTest():
     cap = cv2.VideoCapture(0)
@@ -9,43 +16,75 @@ def captureLiveVideoTest():
         print("Cannot open camera")
         exit()
     count = 0
-    while count < 100:
+    f = open('GPS_coords.txt'+str(time.time_ns()), 'a')
+    while cap.isOpened():
         # Capture frame-by-frame
         ret, frame = cap.read()
+        
+        # Undisort image frame 
+        
+        frame = undistort_frames(frame)
+        
+        # pull GPS
+#        lat = vehicle.location.global_relative_frame.lat
+#        lon = vehicle.location.global_relative_frame.lon
+#        alt = vehicle.location.global_relative_frame.alt
+
+        lat = 30.32420
+        lon = -97.60313
+        alt = 76.2
         # if frame is read correctly ret is True
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
-        # Our operations on the frame come here
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        target_type, target_lat, target_lon  = featRecog(frame, count, lat, lon, alt)
+        f.write(target_type+'  lat='+str(target_lat)+' , lon='+str(target_lon)+'\n')
         # Display the resulting frame
-        cv2.imwrite('frame' +str(count)+'.png', gray)
-        # plt.imshow(gray,),plt.show()
+        #cv2.imwrite('frame' +str(count)+'.png', gray)
         count += 1
 
 
     # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()
-def captureFrames(pathToVid, sec, count):
-    # Read the video from specified path
-    cam = cv2.VideoCapture(pathToVid)
-
-    cam.set(cv2.CAP_PROP_POS_MSEC,sec*1000)
-    hasFrames,image = cam.read()
-    if hasFrames:
-        frameName = "./data/image"+str(count)+".jpg" 
-        cv2.imwrite(frameName, image)     # save frame as JPG file
-        featRecog(frameName, count)
-    return hasFrames
+        
+    f.close()
 
 
+''' Define function to undistort image frames using intrinsic parameters from
+"camera_calibration_standard.py" '''
 
 
-def featRecog(frameName, count):
+def undistort_frames(frame):
+    
+    # Define Camera Calibration Parameters from "camera_calibration_standard.py"
+        
+    dist = np.array([[-0.50674759,  0.23775016, -0.01112213, -0.00096096,  0.17855823]])
+    mtx = np.array([[1882.35, 0, 959.767], [0, 1875.87, 575.389]])
+    
+    h,  w = frame.shape[:2] # Return frame size
+
+    # Obtain new camera matrix for removing distortion from input image
+
+    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+
+    # # Undistortion Method: Using remapping
+
+    mapx,mapy = cv2.initUndistortRectifyMap(mtx,dist,None,newcameramtx,(w,h),5)
+    frame = cv2.remap(frame,mapx,mapy,cv2.INTER_LINEAR)
+  
+    #Crop the image
+    x, y, w, h = roi
+    frame = frame[y:y+h, x:x+w]
+
+    return frame
+
+
+def featRecog(frame, count, lat, lon, alt):
     ## Read
-    # img = cv2.imread('../Input_Data/Training_Images/testField.png')
-    img = cv2.imread(frameName)
+    #img = cv2.imread(frameName)
+    img = frame
     ## convert to hsv
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
@@ -64,7 +103,7 @@ def featRecog(frameName, count):
 
     thresh = 20
     im_bw = cv2.threshold(gray, thresh, 255, cv2.THRESH_BINARY)[1]
-    cv2.imwrite('testImages/bw_image.png', im_bw)
+    #cv2.imwrite('testImages/bw_image.png', im_bw)
     # find and draw contours
 
     contours = cv2.findContours(im_bw, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -82,7 +121,7 @@ def featRecog(frameName, count):
         # checking to make sure the bounding box that is cropped is in range of what a face would be
         if h > 30 and h < 150:
         
-            cv2.imwrite("outputImages/outlined_image.png",img)
+            #cv2.imwrite("outputImages/outlined_image.png",img)
 
             
             # Crop the image to the bounding rectangle only
@@ -106,117 +145,135 @@ def featRecog(frameName, count):
             radius = int(radius)
 
             x,y,w,h = cv2.boundingRect(c)
-            if w > 5:
-                try: 
-                    face = crop_img[y:y+h, x:x+w]
+            if w > 30:
+                face = crop_img[y:y+h, x:x+w]
+                cv2.imwrite("outputImages/face.png",face)
 
-                    cv2.imwrite("outputImages/face.png",face)
+                # SIFT Feature Matching
 
-                    # SIFT Feature Matching
-
-                    img1 = cv2.imread('inputImages/querySmile.png',cv2.IMREAD_GRAYSCALE) # queryImage
-                    img2 = cv2.imread('outputImages/face.png',cv2.IMREAD_GRAYSCALE) # trainImage
-                    img3 = cv2.imread('inputImages/queryFrowny.png',cv2.IMREAD_GRAYSCALE) # queryImage
+                img1 = cv2.imread('inputImages/querySmile.png',cv2.IMREAD_GRAYSCALE) # queryImage
+                img2 = cv2.imread('outputImages/face.png',cv2.IMREAD_GRAYSCALE) # trainImage
+                img3 = cv2.imread('inputImages/queryFrowny.png',cv2.IMREAD_GRAYSCALE) # queryImage
 
 
-                    # Initiate SIFT detector
-                    sift = cv2.SIFT_create()
+                # Initiate SIFT detector
+                sift = cv2.SIFT_create()
 
-                    # find the keypoints and descriptors with SIFT
-                    kp1, des1 = sift.detectAndCompute(img1,None)
-                    kp2, des2 = sift.detectAndCompute(img2,None)
-                    kp3, des3 = sift.detectAndCompute(img3,None)
+                # find the keypoints and descriptors with SIFT
+                kp1, des1 = sift.detectAndCompute(img1,None)
+                kp2, des2 = sift.detectAndCompute(img2,None)
+                kp3, des3 = sift.detectAndCompute(img3,None)
 
-                    # FLANN parameters
-                    FLANN_INDEX_KDTREE = 1
-                    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-                    search_params = dict(checks=100)   # or pass empty dictionary
-                    flann = cv2.FlannBasedMatcher(index_params,search_params)
-                    
+                # FLANN parameters
+                FLANN_INDEX_KDTREE = 1
+                index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+                search_params = dict(checks=100)   # or pass empty dictionary
+                flann = cv2.FlannBasedMatcher(index_params,search_params)
+                
+                try:
                     matchesSmiley = flann.knnMatch(des1,des2,k=2)
                     matchesFrowny= flann.knnMatch(des3,des2,k=2)
-
-                    # Need to draw only good matches, so create a mask
-                    matchesSmileyMask = [[0,0] for i in range(len(matchesSmiley))]
-                    matchesFrownyMask = [[0,0] for i in range(len(matchesFrowny))]
-                    
-                    
-
-                    # ratio test as per Lowe's paper Smiley
-                    countGoodMatchesSmiley = 0
-                    for i,(m,n) in enumerate(matchesSmiley):
-                        if m.distance < 0.8*n.distance:
-                            matchesSmileyMask[i]=[1,0]
-                            countGoodMatchesSmiley += 1
-                    draw_params_smiley = dict(matchColor = (0,255,0),
-                                    singlePointColor = (255,0,0),
-                                    matchesMask = matchesSmileyMask,
-                                    flags = cv2.DrawMatchesFlags_DEFAULT)
-                    img4 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,matchesSmiley,None,**draw_params_smiley)
-
-                    # ratio test as per Lowe's paper Smiley
-                    countGoodMatchesFrowny = 0
-                    for i,(m,n) in enumerate(matchesFrowny):
-                        if m.distance < 0.8*n.distance:
-                            matchesFrownyMask[i]=[1,0]
-                            countGoodMatchesFrowny += 1
-                    draw_params_frowny = dict(matchColor = (0,255,0),
-                                    singlePointColor = (255,0,0),
-                                    matchesMask = matchesFrownyMask,
-                                    flags = cv2.DrawMatchesFlags_DEFAULT)
-                    img5 = cv2.drawMatchesKnn(img3,kp3,img2,kp2,matchesFrowny,None,**draw_params_frowny)
-
-                    if countGoodMatchesSmiley >= 4 or countGoodMatchesFrowny >= 4:
-                        if countGoodMatchesSmiley > countGoodMatchesFrowny:
-                            print('Smiley Face!!')
-                            plt.imshow(img4,),plt.show()
-                        else:
-                            print('Frowny Face!!')
-                            M = cv2.moments(conts)
-                            if M['m00'] != 0:
-                                cx = int(M['m10']/M['m00'])
-                                cy = int(M['m01']/M['m00'])
-                                print('cx = '+str(cx) +' , cy = '+str(cy))
-                                # cv2.circle(img, (cx, cy), 7, (0, 0, 255), -1)
-                                # cv2.imwrite("imageCenter.png", img)
-                            plt.imshow(img5,),plt.show()
-                    else:
-                        print('Tarp')
-                        plt.imshow(img4,),plt.show()
-                        plt.imshow(img5,),plt.show()
-                    
-                    
-
-                    cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img4)
-                    cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img5)
                 except:
-                    pass
-def LatLontoXY(lat_center,lon_center,zoom):
-    C =(256/(2*math.pi) )* 2**zoom
-
-    x=C*(math.radians(lon_center)+math.pi)
-    y=C*(math.pi-math.log( math.tan(  (math.pi/4) + math.radians(lat_center)/2    )  ))
-
-    return x,y
-
-def xy2LatLon(lat_center,lon_center,zoom,width_internal,height_internal,pxX_internal,pxY_internal):
-
-    xcenter,ycenter=LatLontoXY(lat_center,lon_center,zoom)
-
-    xPoint=xcenter- (width_internal/2-pxX_internal)
-    ypoint=ycenter -(height_internal/2-pxY_internal)
+                    return 'none', 0 ,0
+                # Need to draw only good matches, so create a mask
+                matchesSmileyMask = [[0,0] for i in range(len(matchesSmiley))]
+                matchesFrownyMask = [[0,0] for i in range(len(matchesFrowny))]
 
 
-    C = (256 / (2 * math.pi)) * 2 ** zoom
-    M = (xPoint/C)-math.pi
-    N =-(ypoint/C) + math.pi
 
-    lon_Point =math.degrees(M)
-    lat_Point =math.degrees( (math.atan( math.e**N)-(math.pi/4))*2 )
+                # ratio test as per Lowe's paper Smiley
+                countGoodMatchesSmiley = 0
+                for i,(m,n) in enumerate(matchesSmiley):
+                    if m.distance < 0.8*n.distance:
+                        matchesSmileyMask[i]=[1,0]
+                        countGoodMatchesSmiley += 1
+                    draw_params_smiley = dict(matchColor = (0,255,0),
+                                singlePointColor = (255,0,0),
+                                matchesMask = matchesSmileyMask,
+                                flags = cv2.DrawMatchesFlags_DEFAULT)
+                img4 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,matchesSmiley,None,**draw_params_smiley)
 
-    return lat_Point,lon_Point
+                # ratio test as per Lowe's paper Smiley
+                countGoodMatchesFrowny = 0
+                for i,(m,n) in enumerate(matchesFrowny):
+                    if m.distance < 0.8*n.distance:
+                        matchesFrownyMask[i]=[1,0]
+                        countGoodMatchesFrowny += 1
+                    draw_params_frowny = dict(matchColor = (0,255,0),
+                                singlePointColor = (255,0,0),
+                    matchesMask = matchesFrownyMask,
+                                flags = cv2.DrawMatchesFlags_DEFAULT)
+                img5 = cv2.drawMatchesKnn(img3,kp3,img2,kp2,matchesFrowny,None,**draw_params_frowny)
+
+                if countGoodMatchesSmiley >= 4 or countGoodMatchesFrowny >= 4:
+                    if countGoodMatchesSmiley > countGoodMatchesFrowny:
+                        print('Smiley Face!!')
+                        M = cv2.moments(conts)
+                        if M['m00'] != 0:
+                            cx = int(M['m10']/M['m00'])
+                            cy = int(M['m01']/M['m00'])
+                            print('cx = '+str(cx) +' , cy = '+str(cy))
+                            #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
+                            #target_dict = {'smiley_face'+str(count):[target_lat, target_lon]}
+                            target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
+                            cv2.imwrite('/home/pi/Desktop/outputImagesTest/Smiley'+str(count)+'.png', frame)
+                            return 'Smiley_Face'+str(count), target_lat, target_lon
+                        # plt.imshow(img4,),plt.show()
+                    else:
+                        print('Frowny Face!!')
+                        M = cv2.moments(conts)
+                        if M['m00'] != 0:
+                            cx = int(M['m10']/M['m00'])
+                            cy = int(M['m01']/M['m00'])
+                            print('cx = '+str(cx) +' , cy = '+str(cy))
+                            #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
+                            #target_dict = {'frowny_face'+str(count):[target_lat, target_lon]}
+                            target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
+                            cv2.imwrite('/home/pi/Desktop/outputImagesTest/Frowny'+str(count)+'.png', frame)
+                            return 'Frowny Face'+str(count), target_lat, target_lon
+                        # plt.imshow(img5,),plt.show()
+                else:
+                    print('Tarp')
+                    M = cv2.moments(conts)
+                    if M['m00'] != 0:
+                        cx = int(M['m10']/M['m00'])
+                        cy = int(M['m01']/M['m00'])
+                        print('cx = '+str(cx) +' , cy = '+str(cy))
+                        #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
+                        #target_dict = {'tarp'+str(count):[target_lat, target_lon]}
+                        target_lat, target_lon = calcGPS(lat, lon, cx, cy, alt)
+                        print('lat= ' +str(target_lat)+ ' lon='+str(target_lon))
+                        return 'tarp'+str(count),target_lat, target_lon
+                    # plt.imshow(img4,),plt.show()
+                    # plt.imshow(img5,),plt.show()
+
+
+
+                cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img4)
+                cv2.imwrite("outputImages/SIFT_test" + str(count) + ".png",img5)
+
+    return 'none', 0, 0   
+
+
+def calcGPS(gpsLat, gpsLon, xpoint, ypoint, alt):
+    mPerPixel = 2*alt*math.tan(math.radians(65)/2)/640
+    lat_center = 240
+    lon_center = 320
+
+    convertDeg = 1/111139
+
+    xChange = (xpoint - lon_center)*mPerPixel*convertDeg
+    yChange = (ypoint - lat_center)*mPerPixel*convertDeg
+
+    newGpsLon = gpsLon + xChange
+    newGpsLat = gpsLat + yChange
+
+    return newGpsLat, newGpsLon
 
 def main():
+    #connection to pixhawk
+    #vehicle = connect('/dev/ttyAMA0', wait_ready=True, baud=921600)
+
     # sec = 0
     # frameRate = 3 #//it will capture image in each 1 second
     # count=0
