@@ -135,12 +135,6 @@ class Stitch(object):
             trees = 5)
         matcher = cv2.FlannBasedMatcher(flann_params, {})
 
-        #gray= cv2.cvtColor(base_img,cv2.COLOR_BGR2GRAY)
-        # Test 
-        #base_img = cv2.drawKeypoints(gray,kp,img,flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        #cv2.imwrite('sift_keypoints.jpg',base_img)
-        #cv2.imwrite("test.jpg",base_img)
-
         print("Iterating through next images...")
     
         closestImage = None
@@ -319,7 +313,7 @@ class Stitch(object):
     
         else:
     
-            return self.stitchImages(base_img_rgb, round+1)
+            return self.stitch(base_img_rgb, round+1)
     
     
 
