@@ -8,18 +8,7 @@ from pymavlink import mavutil
 from pymavlink import mavwp
 import time
 
-def run_mission(target_coord):
-
-    # set up connection to pixhawk
-    # detect pixhawk port using serial usb connection
-    ports = mavutil.auto_detect_serial(preferred_list=['*CubeOrange*if00'])
-
-    for port in ports:
-        print("%s" % port)
-
-    # try connecting to the specified port, there should only be one
-    master = mavutil.mavlink_connection(str(port), baud=921600)
-    master.wait_heartbeat()
+def run_mission(target_coord, master):
 
     # CARP = Target for walk
     carp_coord = target_coord # bc walking, drop on the target
@@ -86,7 +75,3 @@ def run_mission(target_coord):
         master.mav.send(wp.wp(msg.seq))
         #print(wp.wp(msg.seq))
         # print('Sending waypoint {0}'.format(msg.seq))
-
-if __name__ == "__main__":
-    gps_coord = np.array([30.291466, -97.738195])   # Hard code in front of ASE
-    run_mission(gps_coord) # read mission file with waypoints and servo commands
