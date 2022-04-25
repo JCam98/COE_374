@@ -6,43 +6,52 @@ and invoked in, "main.py". '''
 
 
 import numpy as np
-import cv2
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image, ImageDraw
 
 
 
-def gen_published_map(text_file_with_GPS_and_identifications, stitched_map):
+def gen_published_map(textfile, stitched_map, xpoint_vec, ypoint_vec):
     
     # Read text file into numpy array 
     
-    GPS_idents_file_data = np.loadtxt(text_file_with_GPS_and_identifications, dtype = str)
+    GPS_idents_file_data = np.loadtxt(textfile, dtype = str)
     
     # Extract GPS coordinates and identifications
     
-    GPS_coords = GPS_idents_file_data[:,0]
-    identifications = GPS_idents_file_data[:,1]
+    identifications = GPS_idents_file_data[:,0]
+    GPS_coords_lat = GPS_idents_file_data[:,1]
+    GPS_coords_long = GPS_idents_file_data[:,2]
+    GPS_coords = []
+    lat_range = 
+    long_range = 
     
     # Read in image of map from "stitching.py" into image object
     
-    stitched_map = cv2.imread(stitched_map)
+    stitched_map = Image.open(stitched_map)
     
     # Loop through each GPS coordinate, for each identification, evaluate 
     # pixel location of centroid of target/tarp and overlay text box with 
     # strings containing GPS coordinate position and identification
     
-    for i in range(0, len(GPS_coords)):
+    for i in range(0, len(identifications)):
         
-        if (identifications[i] != "None"):
+        GPS_coords.append(GPS_coords_lat[i] + GPS_coords_long[i])
+        
+        if (identifications[i] != "none"):
             
             # Calculate pixel location of centroid of target/tarp and overlay text
             # box with strings containing GPS coordinate position and identification
-            # using "calcGPS()"
             
-            #pixel_x = (xChange/(mPerPixel*convertDeg)) + lon_center
-            #pixel_y = (yChange/(mPerPixel*convertDeg)) + lat_center
-            #xChange = (xpoint - lon_center)*mPerPixel*convertDeg
-           # yChange = (ypoint - lat_center)*mPerPixel*convertDeg
-
+            ''' First check the lat and long range of mapped region, and then determine
+            corresponding pixel width and height of full mapped image. then, 
+            using this range, determine corresponding pixel location of identifications
+            given ratio of GPS coordinate of identification to GPS coordinate range
+            of width/height '''
+            
+            
+            
+            pixel_x = xpoint 
+            pixel_y = ypoint
             
             # Offset pixel location of beginning of overlayed text 
             
