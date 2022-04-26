@@ -9,7 +9,7 @@ import sys
 def resize(frame, count):
 
     count = count + 10001
-    scale_percent = 66 # percent of original size
+    scale_percent = 75 # percent of original size
     width = int(frame.shape[1] * scale_percent / 100)
     height = int(frame.shape[0] * scale_percent / 100)
     dim = (width, height)
