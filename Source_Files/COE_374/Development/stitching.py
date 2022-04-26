@@ -11,26 +11,23 @@ from numpy import linalg
 
 class Stitch(object):
  
-    def __init__(self, image_dir, key_frame, output_dir, img_filter=None):
+    def __init__(self):
         '''
         image_dir: 'directory' containing all images
         key_frame: 'dir/name.jpg' of the base image
         output_dir: 'directory' where to save output images
-        optional: 
-           img_filter = 'JPG'; None->Take all images
+
+        All of the above paths should be hardcoded now, use stiching_old.py to use the version with system arguments!!
         '''
     
-        self.key_frame_file = os.path.split(key_frame)[-1]
-        self.output_dir = output_dir
+        self.key_frame_file = 'images/image_dir/resized10121.jpg'
+        self.output_dir = 'images/output_dir'
         
         
         # Open the directory given in the arguments
         self.dir_list = []
         try:
-            self.dir_list = os.listdir(image_dir)
-            if img_filter:
-                # remove all files that doen't end with .[image_filter]
-                self.dir_list = list(filter(lambda x: x.find(img_filter) > -1, self.dir_list))
+            self.dir_list = os.listdir('images/image_dir')
             try: #remove Thumbs.db, is existent (windows only)
                 self.dir_list.remove('.DS_Store')
             except ValueError:
@@ -38,16 +35,16 @@ class Stitch(object):
                 
         
         except:
-            print(("Unable to open directory: %s" % image_dir), file = sys.stderr)
+            print(("Unable to open directory: %s" % 'images/image_dir'), file = sys.stderr)
             sys.exit(-1)
     
-        self.dir_list = map(lambda x: os.path.join(image_dir, x), self.dir_list)
+        self.dir_list = map(lambda x: os.path.join('images/image_dir', x), self.dir_list)
         
-        self.dir_list = list(filter(lambda x: x != key_frame, self.dir_list))
+        self.dir_list = list(filter(lambda x: x != 'images/image_dir/resized10121.jpg', self.dir_list))
     
-        base_img_rgb = cv2.imread(key_frame)
+        base_img_rgb = cv2.imread('images/image_dir/resized10121.jpg')
         if base_img_rgb.any() == None:
-            raise IOError("%s doesn't exist" % key_frame)
+            raise IOError("%s doesn't exist" % 'images/image_dir/resized10121.jpg')
         
         final_img = self.stitch(base_img_rgb, 0)        
         
@@ -316,13 +313,6 @@ class Stitch(object):
             return self.stitch(base_img_rgb, round+1)
     
     
-
-    
-
  # ----------------------------------------------------------------------------
 if __name__ == '__main__':
-    if ( len(sys.argv) < 4 ):
-        print(("Usage: %s <image_dir> <key_frame> <output_dir>" % sys.argv[0]),file = sys.stderr)
-        sys.exit(-1)
-    
-    Stitch(sys.argv[1], sys.argv[2], sys.argv[3])
+    Stitch()
