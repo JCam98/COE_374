@@ -10,29 +10,31 @@ and invoked in, "main.py". '''
 
 import featRecog 
 import undistort_frames as uf
+import findClosestTarget as fct
+import refineTargets as rt
 import time
 import cv2
-import resize
 
 
 def captureLiveVideoTest():
     cap = cv2.VideoCapture(0)
+    cap.set(3, 1920)
+    cap.set(4, 1080)
     if not cap.isOpened():
         print("Cannot open camera")
         exit()
     count = 0
-    f = open('GPS_coords.txt'+str(time.time_ns()), 'a')
+    target_list = []
+
+    f = open('Refined_GPS_Coords.txt'+str(time.time_ns()), 'a')
+    g = open('GPS_Coords.txt'+str(time.time_ns()), 'a')
     while cap.isOpened():
         # Capture frame-by-frame
         ret, frame = cap.read()
         
         # Undisort image frame 
         
-        frame = uf.undistort_frames(frame)
-        
-        # Resize image for image stitching
-        
-        frame = resize.resize(frame, count)
+        frame = uf(frame)
         
         # pull GPS
 #        lat = vehicle.location.global_relative_frame.lat
@@ -48,9 +50,23 @@ def captureLiveVideoTest():
             break
 
         target_type, target_lat, target_lon  = featRecog(frame, count, lat, lon, alt)
-        f.write(target_type+'  lat='+str(target_lat)+' , lon='+str(target_lon)+'\n')
-        # Display the resulting frame
-        #cv2.imwrite('frame' +str(count)+'.png', gray)
+
+        g.write(target_type+'  lat='+str(target_lat)+' , lon='+str(target_lon)+'\n')
+
+        candidate_target = {'type':target_type, 'lat': target_lat, 'lon':target_lon}
+        if not target_list:
+            target_list.append([candidate_target])
+        else:
+            dist, spot_in_list = fct.findClosestTarget(candidate_target, target_list)
+
+            # modify threshold value based on results
+            if dist < .01:
+                target_list[spot_in_list].append(candidate_target)
+            else:
+                target_list[-1]=[candidate_target]
+
+            rt.refineTargets(target_list, f)
+            
         count += 1
 
 

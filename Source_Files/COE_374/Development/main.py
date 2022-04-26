@@ -21,7 +21,7 @@ import undistort_frames as uf
 def main():
     # connection to pixhawk
     port = mavutil.auto_detect_serial(preferred_list=['*CubeOrange*if00'])
-    vehicle = mavutil.mavlink_connection(str(port), baud=921600)
+    vehicle = mavutil.mavlink_connection(str(port[0]), wait_ready=True, baud=921600)
 
     alt = vehicle.location.global_relative_frame.alt
     runTime = 60 #sec

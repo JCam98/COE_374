@@ -1,9 +1,11 @@
 import os
+from os import listdir
 import sys
 import cv2
 import math
 import numpy as np
 import utils
+import time
 
 from numpy import linalg
 
@@ -16,11 +18,10 @@ class Stitch(object):
         image_dir: 'directory' containing all images
         key_frame: 'dir/name.jpg' of the base image
         output_dir: 'directory' where to save output images
-
         All of the above paths should be hardcoded now, use stiching_old.py to use the version with system arguments!!
         '''
     
-        self.key_frame_file = 'images/image_dir/resized10121.jpg'
+        self.key_frame_file = 'images/image_dir/' + os.listdir('images/image_dir')[0] 
         self.output_dir = 'images/output_dir'
         
         
@@ -40,11 +41,11 @@ class Stitch(object):
     
         self.dir_list = map(lambda x: os.path.join('images/image_dir', x), self.dir_list)
         
-        self.dir_list = list(filter(lambda x: x != 'images/image_dir/resized10121.jpg', self.dir_list))
+        self.dir_list = list(filter(lambda x: x != 'images/image_dir/' + os.listdir('images/image_dir')[0] , self.dir_list))
     
-        base_img_rgb = cv2.imread('images/image_dir/resized10121.jpg')
+        base_img_rgb = cv2.imread('images/image_dir/' + os.listdir('images/image_dir')[0] )
         if base_img_rgb.any() == None:
-            raise IOError("%s doesn't exist" % 'images/image_dir/resized10121.jpg')
+            raise IOError("%s doesn't exist" % 'images/image_dir/')
         
         final_img = self.stitch(base_img_rgb, 0)        
         
@@ -132,38 +133,38 @@ class Stitch(object):
             trees = 5)
         matcher = cv2.FlannBasedMatcher(flann_params, {})
 
-        print("Iterating through next images...")
+        #print("Iterating through next images...")
     
         closestImage = None
 
         next_img_path = self.dir_list[0]
-        print(next_img_path)
+        #print(next_img_path)
         print("Reading %s..." % next_img_path)
 
         # Read in the next image...
         next_img_rgb = cv2.imread(next_img_path)
         next_img = cv2.GaussianBlur(cv2.cvtColor(next_img_rgb,cv2.COLOR_BGR2GRAY), (5,5), 0)
 
-        print("\t Finding points...")
+        #print("\t Finding points...")
 
         # Find points in the next frame
         next_features, next_descs = detector.detectAndCompute(next_img, None)
 
         matches = matcher.knnMatch(next_descs, trainDescriptors=base_descs, k=2)
 
-        print("\t Match Count: ", len(matches))
+        #print("\t Match Count: ", len(matches))
 
         matches_subset = self.filter_matches(matches)
 
-        print("\t Filtered Match Count: ", len(matches_subset))
+        #print("\t Filtered Match Count: ", len(matches_subset))
 
         distance = self.imageDistance(matches_subset)
 
-        print("\t Distance from Key Image: ", distance)
+        #print("\t Distance from Key Image: ", distance)
 
         averagePointDistance = distance/float(len(matches_subset))
 
-        print("\t Average Distance: ", averagePointDistance)
+        #print("\t Average Distance: ", averagePointDistance)
 
         kp1 = []
         kp2 = []
@@ -176,7 +177,7 @@ class Stitch(object):
         p2 = np.array([k.pt for k in kp2])
 
         H, status = cv2.findHomography(p1, p2, cv2.RANSAC, 5.0)
-        print('%d / %d  inliers/matched' % (np.sum(status), len(status)))
+        #print('%d / %d  inliers/matched' % (np.sum(status), len(status)))
 
         inlierRatio = float(np.sum(status)) / float(len(status))
 
@@ -192,8 +193,8 @@ class Stitch(object):
             closestImage['desc'] = next_descs
             closestImage['match'] = matches_subset
     
-        print("Closest Image: ", closestImage['path'])
-        print("Closest Image Ratio: ", closestImage['inliers'])
+        #print("Closest Image: ", closestImage['path'])
+        #print("Closest Image Ratio: ", closestImage['inliers'])
 
         self.dir_list = list(filter(lambda x: x != closestImage['path'], self.dir_list))
     
@@ -219,9 +220,9 @@ class Stitch(object):
                 move_h[1,2] += -min_y
                 max_y += -min_y
     
-            print("Homography: \n", H)
-            print("Inverse Homography: \n", H_inv)
-            print("Min Points: ", (min_x, min_y))
+            #print("Homography: \n", H)
+            #print("Inverse Homography: \n", H_inv)
+            #print("Min Points: ", (min_x, min_y))
     
             mod_inv_h = move_h * H_inv
     
@@ -231,7 +232,7 @@ class Stitch(object):
             print("New Dimensions: ", (img_w, img_h))
 
             # crop edges
-            print("Cropping...")
+            #print("Cropping...")
             base_h, base_w, base_d = base_img_rgb.shape
             next_h, next_w, next_d = closestImage['rgb'].shape
 
@@ -241,13 +242,13 @@ class Stitch(object):
     
             # Warp the new image given the homography from the old image
             base_img_warp = cv2.warpPerspective(base_img_rgb, move_h, (img_w, img_h))
-            print("Warped base image")
+            #print("Warped base image")
     
             # utils.showImage(base_img_warp, scale=(0.2, 0.2), timeout=1000, save=True, title="base_img_warp")
             # cv2.destroyAllWindows()
     
             next_img_warp = cv2.warpPerspective(closestImage['rgb'], mod_inv_h, (img_w, img_h))
-            print("Warped next image")
+            #print("Warped next image")
     
             # utils.showImage(next_img_warp, scale=(0.2, 0.2), timeout=1000, save=True, title="next_img_warp")
             # cv2.destroyAllWindows()
@@ -255,9 +256,9 @@ class Stitch(object):
             # Put the base image on an enlarged palette
             enlarged_base_img = np.zeros((img_h, img_w, 3), np.uint8)
     
-            print("Enlarged Image Shape: ", enlarged_base_img.shape)
-            print("Base Image Shape: ", base_img_rgb.shape)
-            print("Base Image Warp Shape: ", base_img_warp.shape)
+            #print("Enlarged Image Shape: ", enlarged_base_img.shape)
+            #print("Base Image Shape: ", base_img_rgb.shape)
+            #print("Base Image Warp Shape: ", base_img_warp.shape)
     
             # enlarged_base_img[y:y+base_img_rgb.shape[0],x:x+base_img_rgb.shape[1]] = base_img_rgb
             # enlarged_base_img[:base_img_warp.shape[0],:base_img_warp.shape[1]] = base_img_warp
@@ -279,7 +280,7 @@ class Stitch(object):
             final_gray = cv2.cvtColor(final_img, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(final_gray, 1, 255, cv2.THRESH_BINARY)
             contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            print("Found %d contours..." % (len(contours)))
+            #print("Found %d contours..." % (len(contours)))
 
             max_area = 0
             best_rect = (0,0,0,0)
@@ -304,8 +305,10 @@ class Stitch(object):
     
             # output
             final_filename = "%s/%d.JPG" % (self.output_dir, round)
+
+            print('Saving stitched image as ' + str(final_filename))
             cv2.imwrite(final_filename, final_img)
-    
+            print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
             return self.stitch(final_img, round+1)
     
         else:
@@ -315,4 +318,9 @@ class Stitch(object):
     
  # ----------------------------------------------------------------------------
 if __name__ == '__main__':
+
+    start = time.time()
     Stitch()
+    end = time.time()
+    length = end - start
+    print('Finished stitching in ' + str(length) + ' seconds.')

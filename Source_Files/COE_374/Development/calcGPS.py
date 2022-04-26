@@ -6,9 +6,9 @@ the entire AOI. This function will be invoked in "main.py" '''
 import math
 
 def calcGPS(gpsLat, gpsLon, xpoint, ypoint, alt):
-    mPerPixel = 2*alt*math.tan(math.radians(65)/2)/1920
-    lat_center = 540
-    lon_center = 960
+    mPerPixel = 2*alt*math.tan(math.radians(65)/2)/1376
+    lat_center = 349.5
+    lon_center = 688
 
     convertDeg = 1/111139
 

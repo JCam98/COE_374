@@ -7,6 +7,7 @@ and invoked in, "main.py". '''
 
 import numpy as np
 from PIL import Image, ImageDraw
+import math
 
 
 
@@ -22,9 +23,10 @@ def gen_published_map(textfile, stitched_map, xpoint_vec, ypoint_vec):
     GPS_coords_lat = GPS_idents_file_data[:,1]
     GPS_coords_long = GPS_idents_file_data[:,2]
     GPS_coords = []
-    lat_range = [bottom, top] # Define boundaries of latitude in AOI
-    long_range = [left, right] # Define boundaries of longitude in AOI
-    mPerPixel = 2*alt*math.tan(math.radians(65)/2)/1920
+    lat_range = [30.3226930, 30.3264899] # Define boundaries of latitude in AOI
+    long_range = [-97.6042235, -97.6000392] # Define boundaries of longitude in AOI
+    alt = 320 # Cruise-out altitude in meters
+    mPerPixel = 2*alt*math.tan(math.radians(65)/2)/1376
     degree_per_meter = 1/111139
     pixel_width_map = (long_range[1] - long_range[0]) / (mPerPixel * degree_per_meter)
     pixel_height_map = (lat_range[1] - lat_range[0]) / (mPerPixel * degree_per_meter)
@@ -46,13 +48,14 @@ def gen_published_map(textfile, stitched_map, xpoint_vec, ypoint_vec):
             # Calculate pixel location of centroid of target/tarp and overlay text
             # box with strings containing GPS coordinate position and identification
             
-            ''' First check the lat and long range of mapped region, and then determine
-            corresponding pixel width and height of fully mapped image. then, 
-            using this range, determine corresponding pixel location of identifications
-            given ratio of GPS coordinate of identification to GPS coordinate range
-            of width/height '''
+            ''' Evaluate the GPS longitude and GPS latitude ratio of centroid
+            of identifications to the GPS longitude and GPS latitude range
+            of the AOI region. Use resulting ratio to determine pixel position
+            of centroid of target given the pixel width and height
+            of the AOI region'''
             
-            
+            GPS_coords_lat[i] = float(GPS_coords_lat[i][4:21])
+            GPS_coords_long[i] = float(GPS_coords_long[i][4:21])
             
             GPS_long_factor = GPS_coords_long[i] / long_range
             GPS_lat_factor = GPS_coords_lat[i] / lat_range
