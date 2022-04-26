@@ -12,6 +12,7 @@ import featRecog
 import undistort_frames as uf
 import time
 import cv2
+import resize
 
 
 def captureLiveVideoTest():
@@ -27,7 +28,11 @@ def captureLiveVideoTest():
         
         # Undisort image frame 
         
-        frame = uf(frame)
+        frame = uf.undistort_frames(frame)
+        
+        # Resize image for image stitching
+        
+        frame = resize.resize(frame, count)
         
         # pull GPS
 #        lat = vehicle.location.global_relative_frame.lat
