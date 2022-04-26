@@ -15,7 +15,7 @@ def resize(frame, count):
     dim = (width, height)
 
     # resize image
-    resized = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA) 
-    cv2.imwrite('images/resized/resized' +str(count)+'.jpg', resized)
+    frame = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA) 
+    cv2.imwrite('images/resized/resized' + str(count) + '.jpg', frame)
 
     return frame
