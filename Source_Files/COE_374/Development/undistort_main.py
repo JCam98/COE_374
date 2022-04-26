@@ -15,7 +15,7 @@ for images in os.listdir(input):
     path = input + '/' + images
     img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
 
-    undst = uf(img)
+    undst = uf.undistort_frames(img)
 
     cv2.imwrite(output +'/undst' +str(count)+'.jpg', undst)
 
