@@ -22,8 +22,12 @@ def gen_published_map(textfile, stitched_map, xpoint_vec, ypoint_vec):
     GPS_coords_lat = GPS_idents_file_data[:,1]
     GPS_coords_long = GPS_idents_file_data[:,2]
     GPS_coords = []
-    lat_range = 
-    long_range = 
+    lat_range = [bottom, top] # Define boundaries of latitude in AOI
+    long_range = [left, right] # Define boundaries of longitude in AOI
+    mPerPixel = 2*alt*math.tan(math.radians(65)/2)/1920
+    degree_per_meter = 1/111139
+    pixel_width_map = (long_range[1] - long_range[0]) / (mPerPixel * degree_per_meter)
+    pixel_height_map = (lat_range[1] - lat_range[0]) / (mPerPixel * degree_per_meter)
     
     # Read in image of map from "stitching.py" into image object
     
@@ -43,15 +47,18 @@ def gen_published_map(textfile, stitched_map, xpoint_vec, ypoint_vec):
             # box with strings containing GPS coordinate position and identification
             
             ''' First check the lat and long range of mapped region, and then determine
-            corresponding pixel width and height of full mapped image. then, 
+            corresponding pixel width and height of fully mapped image. then, 
             using this range, determine corresponding pixel location of identifications
             given ratio of GPS coordinate of identification to GPS coordinate range
             of width/height '''
             
             
             
-            pixel_x = xpoint 
-            pixel_y = ypoint
+            GPS_long_factor = GPS_coords_long[i] / long_range
+            GPS_lat_factor = GPS_coords_lat[i] / lat_range
+            
+            pixel_x = GPS_long_factor * pixel_width_map
+            pixel_y = GPS_lat_factor * pixel_height_map
             
             # Offset pixel location of beginning of overlayed text 
             
