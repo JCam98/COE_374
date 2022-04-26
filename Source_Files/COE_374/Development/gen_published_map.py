@@ -11,11 +11,15 @@ import math
 
 
 
-def gen_published_map(textfile, stitched_map, xpoint_vec, ypoint_vec):
+def gen_published_map(textfile, stitched_map):
     
     # Read text file into numpy array 
     
     GPS_idents_file_data = np.loadtxt(textfile, dtype = str)
+    
+    # Read in image of map from "stitching.py" into image object
+    
+    stitched_map = Image.open(stitched_map)
     
     # Extract GPS coordinates and identifications
     
@@ -25,15 +29,13 @@ def gen_published_map(textfile, stitched_map, xpoint_vec, ypoint_vec):
     GPS_coords = []
     lat_range = [30.3226930, 30.3264899] # Define boundaries of latitude in AOI
     long_range = [-97.6042235, -97.6000392] # Define boundaries of longitude in AOI
-    alt = 320 # Cruise-out altitude in meters
+    alt = 97.536 # Cruise-out altitude in meters (assuming constant)
     mPerPixel = 2*alt*math.tan(math.radians(65)/2)/1376
     degree_per_meter = 1/111139
-    pixel_width_map = (long_range[1] - long_range[0]) / (mPerPixel * degree_per_meter)
-    pixel_height_map = (lat_range[1] - lat_range[0]) / (mPerPixel * degree_per_meter)
     
-    # Read in image of map from "stitching.py" into image object
-    
-    stitched_map = Image.open(stitched_map)
+    pixel_width_map, pixel_height_map = stitched_map.size(stitched_map)
+    #pixel_width_map = (long_range[1] - long_range[0]) / (mPerPixel * degree_per_meter)
+    #pixel_height_map = (lat_range[1] - lat_range[0]) / (mPerPixel * degree_per_meter)
     
     # Loop through each GPS coordinate, for each identification, evaluate 
     # pixel location of centroid of target/tarp and overlay text box with 

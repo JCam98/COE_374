@@ -34,7 +34,7 @@ def captureLiveVideoTest():
         
         # Undisort image frame 
         
-        frame = uf(frame)
+        frame = uf.undistort_frames(frame)
         
         # pull GPS
 #        lat = vehicle.location.global_relative_frame.lat
@@ -49,7 +49,7 @@ def captureLiveVideoTest():
             print("Can't receive frame (stream end?). Exiting ...")
             break
 
-        target_type, target_lat, target_lon  = featRecog(frame, count, lat, lon, alt)
+        target_type, target_lat, target_lon  = featRecog.featRecog(frame, count, lat, lon, alt)
 
         g.write(target_type+'  lat='+str(target_lat)+' , lon='+str(target_lon)+'\n')
 

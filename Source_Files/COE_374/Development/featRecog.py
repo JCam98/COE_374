@@ -141,7 +141,7 @@ def featRecog(frame, count, lat, lon, alt):
                             print('cx = '+str(cx) +' , cy = '+str(cy))
                             #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
                             #target_dict = {'smiley_face'+str(count):[target_lat, target_lon]}
-                            target_lat, target_lon = GPS(lat, lon, cx, cy, alt)
+                            target_lat, target_lon = GPS.calcGPS(lat, lon, cx, cy, alt)
                             cv2.imwrite('/home/pi/Desktop/outputImagesTest/Smiley'+str(count)+'.png', frame)
                             return 'Smiley_Face'+str(count), target_lat, target_lon
                         # plt.imshow(img4,),plt.show()
@@ -154,7 +154,7 @@ def featRecog(frame, count, lat, lon, alt):
                             print('cx = '+str(cx) +' , cy = '+str(cy))
                             #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
                             #target_dict = {'frowny_face'+str(count):[target_lat, target_lon]}
-                            target_lat, target_lon = GPS(lat, lon, cx, cy, alt)
+                            target_lat, target_lon = GPS.calcGPS(lat, lon, cx, cy, alt)
                             cv2.imwrite('/home/pi/Desktop/outputImagesTest/Frowny'+str(count)+'.png', frame)
                             return 'Frowny Face'+str(count), target_lat, target_lon
                         # plt.imshow(img5,),plt.show()
@@ -167,7 +167,7 @@ def featRecog(frame, count, lat, lon, alt):
                         print('cx = '+str(cx) +' , cy = '+str(cy))
                         #target_lat , target_lon = xy2LatLon(lat, lon, 1, 640, 480, cx, cy)
                         #target_dict = {'tarp'+str(count):[target_lat, target_lon]}
-                        target_lat, target_lon = GPS(lat, lon, cx, cy, alt)
+                        target_lat, target_lon = GPS.calcGPS(lat, lon, cx, cy, alt)
                         print('lat= ' +str(target_lat)+ ' lon='+str(target_lon))
                         return 'tarp'+str(count),target_lat, target_lon
                     # plt.imshow(img4,),plt.show()
