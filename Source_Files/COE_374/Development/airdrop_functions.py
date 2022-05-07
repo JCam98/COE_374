@@ -123,7 +123,7 @@ def caclulate_CARP(v_wind, approach_angle):
     while psi[2] > 0:
         # Update wind estimate
         w = v_wind
-        w = np.zeros(3)
+        # w = np.zeros(3)
 
         # Update airspeed v_r
         v_r = np.sqrt((psi[3]-w[0])**2 + (psi[4]-w[1])**2 + (psi[5]-w[2])**2) 
@@ -148,11 +148,11 @@ def caclulate_CARP(v_wind, approach_angle):
     # return CARP (displacement from target in xy)
     return carp_xy
 
+
 def calc_approach_waypoints_cw(x_curr, x_carp, approach_angle):
     """
     calc_approach_waypoints_cw(x_curr, x_carp, approach_angle)\n
     Calculate approach waypoints for a clockwise approach.
-
     Parameters
     ----------
         x_curr : array-like
@@ -161,7 +161,6 @@ def calc_approach_waypoints_cw(x_curr, x_carp, approach_angle):
             XY position of CARP (m). Shape must be (2,)
         approach_angle : float 
             Heading angle from which UAV will approach target, measured CCW from x-axis (rad)
-
     Returns
     ----------    
         waypoints : array-like       
@@ -228,7 +227,6 @@ def calc_approach_waypoints_ccw(x_curr, x_carp, approach_angle):
     """
     calc_approach_waypoints_ccw(x_curr, x_carp, approach_angle)\n
     Calculate approach waypoints for a counter-clockwise approach.
-
     Parameters
     ----------
         x_curr : array-like
@@ -237,7 +235,6 @@ def calc_approach_waypoints_ccw(x_curr, x_carp, approach_angle):
             XY position of CARP (m). Shape must be (2,)
         approach_angle : float 
             Heading angle from which UAV will approach target, measured CCW from x-axis (rad)
-
     Returns
     ----------    
         waypoints : array-like       
@@ -409,57 +406,10 @@ def turnaround_ccw(x_curr, heading_angle):
 
     return waypoints
 
-def send_mission_commands(first_pass_waypoints, next_pass_waypoints):
+def create_mission(first_pass_waypoints, next_pass_waypoints):
     """
-    send_mission_commands(first_pass_waypoints, next_pass_waypoints)\n
-    Sends mission commands to autopilot via mavlink.
-    
-    Parameters
-    ----------
-        first_pass_waypoints : array-like
-            Waypoints for first-pass airdrop. Shape must be (n,2)
-        next_pass_waypoints : array-like
-            Waypoints for subsequent airdrops. Shape must be (n,2)
-    """
-    # setup and wait for initial connection
-    master = mavutil.mavlink_connection('/dev/ttyAMA0', baud=921600)
-    master.wait_heartbeat()
-
-    # generate waypoint object in mavlink
-    waypoints = mavwp.MAVWPLoader()
-
-    # not really sure what these do
-    seq = 1
-    frame = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
-    
-    # Inital pass
-    for wp in first_pass_waypoints:
-        lat = wp[0]
-        lon = wp[1]
-        waypoints.add(mavutil.mavlink.MAVLink_mission_item_message(\
-                        master.target_system,
-                        master.target_component,
-                        seq,
-                        frame,
-                        mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
-                        0, 0, 0, 11, 0, 0,
-                        lat, lon, ALT,
-                        1
-                        ))
-        seq += 1
-
-    # send each waypoint to the pixhawk; it will wait for each one
-    for i in range(waypoints.count()):
-        msg = master.recv_match(type=['MISSION_REQUEST'],blocking=True)
-        master.mav.send(waypoints.wp(msg.seq))
-        print('Sending waypoint {0}'.format(msg.seq))
-
-    return
-
-def write_mission_file(first_pass_waypoints, next_pass_waypoints):
-    """
-    write_mission_file(first_pass_waypoints, next_pass_waypoints)\n
-    Write mission commands to waypoint file for Mission Planner sim.
+    create_mission(first_pass_waypoints, next_pass_waypoints)\n
+    Prepares mission commands (i.e. waypoints) for export to autopilot.
 
     Parameters:
     ----------
@@ -467,48 +417,61 @@ def write_mission_file(first_pass_waypoints, next_pass_waypoints):
             Waypoints for first-pass airdrop. Shape must be (n,2)
         next_pass_waypoints : array-like
             Waypoints for subsequent airdrops. Shape must be (n,2)
-            
-    File Format:
-    ----------
-    QGC WPL <VERSION>
-    <INDEX> <CURRENT WP> <COORD FRAME> <COMMAND> <PARAM1> <PARAM2> <PARAM3> <PARAM4> <PARAM5/X/LATITUDE> <PARAM6/Y/LONGITUDE> <PARAM7/Z/ALTITUDE> <AUTOCONTINUE>
-    ----------
+    Returns:
+        mission_items : ndarray
+            Waypoints for entire mission
+    ---------- 
     """
 
-    # Write to file
-    with open("payload_mission.waypoints", "w+") as ofile:
-        ofile.write('QGC WPL 110\n')
-        alt_ft = ALT*M_TO_FT
+    mission = []
+    item_count = 0
 
-        # Home Location
-        home_coord = [30.324040, -97.602636]
-        ofile.write('%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%d\n' % (0,1,0,16,0,0,0,0,home_coord[0], home_coord[1],alt_ft,1))
-        
-        # Airdrop passes
-        item_count = 1 
-        for drop_num in range(4):
-            # Waypoints
-            if drop_num==0:
-                for wp in first_pass_waypoints:
-                    # ofile.write('%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%d\n' % (item_count,0,0,16,0,0,0,0,wp[0],wp[1],alt_ft,1))
-                    ofile.write('%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n' % (item_count,0,3,16,0,0,0,0,wp[0],wp[1],ALT,1))
-                    # ofile.write('%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n' % (item_count,0,0,16,0,0,0,0,wp[0],wp[1],alt_ft,1))
-                    item_count+=1
-            else:
-                # Continue to next pass
-                for i, wp in enumerate(next_pass_waypoints):
-                    if i==1:
-                        # Close payload doors after first waypoint following drop
-                        ofile.write('%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n' % (item_count,0,0,183,9,1900,0,0,0,0,0,1))
-                        item_count+=1
-                    # ofile.write('%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%d\n' % (item_count,0,0,16,0,0,0,0,wp[0],wp[1],alt_ft,1))
-                    ofile.write('%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n' % (item_count,0,3,16,0,0,0,0,wp[0],wp[1],ALT,1))
-                    # ofile.write('%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n' % (item_count,0,0,16,0,0,0,0,wp[0],wp[1],alt_ft,1))
-                    item_count+=1
+    # Home Location
+    # home_coord = [30.291466, -97.738195]
+    # ofile.write('%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%d\n' % (item_count,1,0,16,0,0,0,0,home_coord[0], home_coord[1],ALT,1))
+    # mission.append([item_count,1,0,16,0,0,0,0,home_coord[0], home_coord[1],ALT,1])
+    # item_count+=1
 
-            # Open payload doors
-            ofile.write('%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n' % (item_count,0,0,183,9,1100,0,0,0,0,0,1))
+    # First pass
+    num_wp = np.shape(first_pass_waypoints)[0]
+    for i, wp in enumerate(first_pass_waypoints):
+        if i==num_wp-1:
+            # Release point is final point in pass
+            mission.append([item_count,0,3,16,0,5,0,0,wp[0],wp[1],ALT,1])
+        else:
+            # Approach point
+            mission.append([item_count,0,3,16,0,0,0,0,wp[0],wp[1],ALT,1])        
+        item_count+=1
+
+    # Release payload at release point
+    mission.append([item_count,0,0,183,SERVO_CHANNEL,SERVO_OPEN,0,0,0,0,0,1])
+    item_count+=1
+
+    # Next pass
+    repeat_start = item_count
+    num_wp = np.shape(next_pass_waypoints)[0]
+    for i, wp in enumerate(next_pass_waypoints):
+        if i==1:
+            # Close payload doors after first waypoint following drop
+            mission.append([item_count,0,3,16,0,0,0,0,wp[0],wp[1],ALT,1])
             item_count+=1
+            mission.append([item_count,0,0,183,SERVO_CHANNEL,SERVO_CLOSE,0,0,0,0,0,1])
+        elif i==num_wp-1:
+            # Release point is final point in pass
+            mission.append([item_count,0,3,16,0,5,0,0,wp[0],wp[1],ALT,1])
+        else:
+            # Approach point
+            mission.append([item_count,0,3,16,0,0,0,0,wp[0],wp[1],ALT,1])
+        item_count+=1
+
+    # Release payload at release point
+    mission.append([item_count,0,0,183,SERVO_CHANNEL,SERVO_OPEN,0,0,0,0,0,1])
+    item_count+=1
+
+    # Repeat passes
+    mission.append([item_count,0,3,177,repeat_start,2,0,0,0,0,0,1])
+
+    return(np.array(mission))
 
 def write_mission_file(fname, first_pass_waypoints, next_pass_waypoints):
     """
@@ -533,10 +496,10 @@ def write_mission_file(fname, first_pass_waypoints, next_pass_waypoints):
         ofile.write('QGC WPL 110\n')
         item_count = 0
 
-        # Home Location
-        home_coord = [30.291466, -97.738195]
-        ofile.write('%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%d\n' % (item_count,1,0,16,0,0,0,0,home_coord[0], home_coord[1],ALT,1))
-        item_count+=1
+        ## Home Location (exclude)
+        # home_coord = [30.291466, -97.738195]
+        # ofile.write('%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%d\n' % (item_count,1,0,16,0,0,0,0,home_coord[0], home_coord[1],ALT,1))
+        # item_count+=1
 
         # First pass
         num_wp = np.shape(first_pass_waypoints)[0]

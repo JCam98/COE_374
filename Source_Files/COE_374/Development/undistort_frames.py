@@ -12,8 +12,8 @@ def undistort_frames(frame):
     
     # Define Camera Calibration Parameters from "camera_calibration_standard.py"
         
-    dist = np.array([[-0.50674759,  0.23775016, -0.01112213, -0.00096096,  0.17855823]])
-    mtx = np.array([[1882.35, 0, 959.767], [0, 1875.87, 575.389], [0,0,1]])
+    dist = np.array([[-0.279329,  -0.274769, -0.00572427, -0.0128338,  0.746644]])
+    mtx = np.array([[587.394, 0, 329.668], [0, 590.266, 265.307], [0,0,1]])
     
     h,  w = frame.shape[:2] # Return frame size
 

@@ -143,7 +143,7 @@ def featRecog(frame, count, lat, lon, alt):
                             #target_dict = {'smiley_face'+str(count):[target_lat, target_lon]}
                             target_lat, target_lon = GPS.calcGPS(lat, lon, cx, cy, alt)
                             cv2.imwrite('/home/pi/Desktop/outputImagesTest/Smiley'+str(count)+'.png', frame)
-                            return 'Smiley_Face'+str(count), target_lat, target_lon
+                            return 'smiley', target_lat, target_lon
                         # plt.imshow(img4,),plt.show()
                     else:
                         print('Frowny Face!!')
@@ -156,7 +156,7 @@ def featRecog(frame, count, lat, lon, alt):
                             #target_dict = {'frowny_face'+str(count):[target_lat, target_lon]}
                             target_lat, target_lon = GPS.calcGPS(lat, lon, cx, cy, alt)
                             cv2.imwrite('/home/pi/Desktop/outputImagesTest/Frowny'+str(count)+'.png', frame)
-                            return 'Frowny Face'+str(count), target_lat, target_lon
+                            return 'frowny', target_lat, target_lon
                         # plt.imshow(img5,),plt.show()
                 else:
                     print('Tarp')
@@ -169,7 +169,7 @@ def featRecog(frame, count, lat, lon, alt):
                         #target_dict = {'tarp'+str(count):[target_lat, target_lon]}
                         target_lat, target_lon = GPS.calcGPS(lat, lon, cx, cy, alt)
                         print('lat= ' +str(target_lat)+ ' lon='+str(target_lon))
-                        return 'tarp'+str(count),target_lat, target_lon
+                        return 'tarp',target_lat, target_lon
                     # plt.imshow(img4,),plt.show()
                     # plt.imshow(img5,),plt.show()
 
